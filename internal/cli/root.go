@@ -31,6 +31,11 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
+// AddCommand adds a command to the root command
+func AddCommand(cmd *cobra.Command) {
+	rootCmd.AddCommand(cmd)
+}
+
 func init() {
 	// Global flags can be added here
 	rootCmd.PersistentFlags().String("api-url", "http://localhost:8080", "Orchestrator API URL")
@@ -39,6 +44,7 @@ func init() {
 	// Add subcommands
 	addConfigCommand()
 	addPingCommand()
+	// Core commands will be added separately to avoid import cycles
 }
 
 // addConfigCommand adds the config subcommand

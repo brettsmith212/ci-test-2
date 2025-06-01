@@ -111,7 +111,7 @@
   - **Step Dependencies**: Step 1
   - **User Instructions**: Test basic CLI with `go run cmd/ampx/main.go --help`
 
-- [ ] Step 10: Implement core CLI commands
+- [x] Step 10: Implement core CLI commands
 
   - **Task**: Create start, list, logs, continue, abort, and merge commands
   - **Description**: Implements all primary CLI functionality for task management and monitoring

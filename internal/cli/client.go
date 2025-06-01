@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -246,4 +247,16 @@ func (c *Client) GetVersion() (map[string]interface{}, error) {
 	}
 
 	return result, nil
+}
+
+// PrintJSON prints data as formatted JSON to stdout
+func PrintJSON(data interface{}) error {
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(data)
+}
+
+// GetOutput returns the output writer (stdout by default)
+func GetOutput() *os.File {
+	return os.Stdout
 }
