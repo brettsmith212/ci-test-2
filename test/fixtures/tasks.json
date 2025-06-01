@@ -1,0 +1,163 @@
+{
+  "valid_tasks": [
+    {
+      "repo": "https://github.com/test/repo1.git",
+      "prompt": "Fix the authentication bug in the login system"
+    },
+    {
+      "repo": "https://github.com/test/repo2.git",
+      "prompt": "Optimize database queries for better performance"
+    },
+    {
+      "repo": "https://github.com/test/repo3.git",
+      "prompt": "Add unit tests for the user management module"
+    },
+    {
+      "repo": "https://gitlab.com/test/project.git",
+      "prompt": "Implement caching mechanism for API responses"
+    },
+    {
+      "repo": "https://bitbucket.org/test/project.git",
+      "prompt": "Refactor the payment processing service"
+    }
+  ],
+  "invalid_tasks": [
+    {
+      "repo": "",
+      "prompt": "Fix the bug",
+      "expected_error": "empty repository"
+    },
+    {
+      "repo": "https://github.com/test/repo.git",
+      "prompt": "",
+      "expected_error": "empty prompt"
+    },
+    {
+      "repo": "invalid-url",
+      "prompt": "Fix the bug",
+      "expected_error": "invalid repository format"
+    },
+    {
+      "repo": "https://github.com/test/repo.git",
+      "prompt": "Run this script: <script>alert('xss')</script>",
+      "expected_error": "malicious content detected"
+    },
+    {
+      "repo": "https://github.com/test/repo.git",
+      "prompt": "Delete everything: rm -rf /",
+      "expected_error": "dangerous command detected"
+    },
+    {
+      "repo": "https://github.com/test/repo.git",
+      "prompt": "Execute: eval('malicious code')",
+      "expected_error": "dangerous command detected"
+    }
+  ],
+  "update_actions": [
+    {
+      "action": "continue",
+      "prompt": "Try a different approach using dependency injection"
+    },
+    {
+      "action": "continue",
+      "prompt": "Focus on the error handling in the middleware"
+    },
+    {
+      "action": "abort",
+      "prompt": ""
+    }
+  ],
+  "invalid_updates": [
+    {
+      "action": "invalid",
+      "prompt": "",
+      "expected_error": "invalid action"
+    },
+    {
+      "action": "",
+      "prompt": "",
+      "expected_error": "empty action"
+    },
+    {
+      "action": "continue",
+      "prompt": "Run this: <script>alert('xss')</script>",
+      "expected_error": "malicious content in prompt"
+    }
+  ],
+  "pagination_tests": [
+    {
+      "limit": 10,
+      "offset": 0,
+      "description": "First page with 10 items"
+    },
+    {
+      "limit": 5,
+      "offset": 5,
+      "description": "Second page with 5 items"
+    },
+    {
+      "limit": 1,
+      "offset": 0,
+      "description": "Single item per page"
+    },
+    {
+      "limit": 100,
+      "offset": 0,
+      "description": "Maximum limit (should be capped)"
+    }
+  ],
+  "invalid_pagination": [
+    {
+      "limit": -1,
+      "offset": 0,
+      "expected_error": "negative limit"
+    },
+    {
+      "limit": 0,
+      "offset": -1,
+      "expected_error": "negative offset"
+    },
+    {
+      "limit": "invalid",
+      "offset": 0,
+      "expected_error": "invalid limit format"
+    },
+    {
+      "limit": 10,
+      "offset": "invalid",
+      "expected_error": "invalid offset format"
+    }
+  ],
+  "status_filters": [
+    {
+      "status": "queued",
+      "description": "Filter by queued status"
+    },
+    {
+      "status": "running",
+      "description": "Filter by running status"
+    },
+    {
+      "status": "success",
+      "description": "Filter by success status"
+    },
+    {
+      "status": "failed",
+      "description": "Filter by failed status"
+    },
+    {
+      "status": "aborted",
+      "description": "Filter by aborted status"
+    }
+  ],
+  "invalid_status_filters": [
+    {
+      "status": "invalid",
+      "expected_error": "invalid status value"
+    },
+    {
+      "status": "QUEUED",
+      "expected_error": "case sensitive status"
+    }
+  ]
+}
