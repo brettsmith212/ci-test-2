@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/brettsmith212/ci-test-2/internal/api"
 	"github.com/brettsmith212/ci-test-2/internal/config"
 	"github.com/brettsmith212/ci-test-2/internal/database"
 )
@@ -35,12 +36,13 @@ func main() {
 
 	log.Println("Database connected and migrations completed successfully")
 
-	// TODO: Initialize Gin server with routes
-	// TODO: Start task dispatcher
-	// TODO: Start HTTP server
-
+	// Initialize Gin server with routes
+	server := api.NewServer(cfg)
+	
 	log.Println("Orchestrator started successfully")
 
-	// Keep the process running
-	select {}
+	// Start HTTP server
+	if err := server.Start(); err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
+	}
 }

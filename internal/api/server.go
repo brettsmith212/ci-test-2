@@ -69,13 +69,16 @@ func (s *Server) setupRoutes() {
 	// API v1 routes
 	v1 := s.router.Group("/api/v1")
 	{
-		// Task routes will be added in the next step
+		// Ping endpoint for basic connectivity test
 		v1.GET("/ping", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"message": "pong",
 				"version": "v1",
 			})
 		})
+
+		// Task routes
+		SetupTaskRoutes(v1)
 	}
 }
 
