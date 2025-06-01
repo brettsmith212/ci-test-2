@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/brettsmith212/ci-test-2/internal/config"
+	"github.com/brettsmith212/ci-test-2/internal/database"
 )
 
 func main() {
@@ -15,8 +15,26 @@ func main() {
 
 	log.Printf("Starting CI-Driven Background Agent Orchestrator...")
 	log.Printf("Server will listen on %s", cfg.Server.Address)
+	log.Printf("Database path: %s", cfg.Database.Path)
 
-	// TODO: Initialize database connection
+	// Initialize database connection
+	if err := database.Connect(cfg.Database.Path); err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer database.Close()
+
+	// Run database migrations
+	if err := database.Migrate(); err != nil {
+		log.Fatalf("Failed to run database migrations: %v", err)
+	}
+
+	// Test database health
+	if err := database.Health(); err != nil {
+		log.Fatalf("Database health check failed: %v", err)
+	}
+
+	log.Println("Database connected and migrations completed successfully")
+
 	// TODO: Initialize Gin server with routes
 	// TODO: Start task dispatcher
 	// TODO: Start HTTP server
