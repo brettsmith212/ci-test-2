@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    ports:
+      - "8080:8080"
+    volumes:
+      - orchestrator_data:/data
+      - ./logs:/var/log/orchestrator
+    environment:
+      - DATABASE_PATH=/data/orchestrator.db
+      - SERVER_ADDRESS=0.0.0.0:8080
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_PRIVATE_KEY_PATH=/etc/github/private-key.pem
+    volumes:
+      - orchestrator_data:/data
+      - ${GITHUB_PRIVATE_KEY_PATH:-./github-app-key.pem}:/etc/github/private-key.pem:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    depends_on:
+      - orchestrator
+    environment:
+      - SERVER_ADDRESS=orchestrator:8080
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_PRIVATE_KEY_PATH=/etc/github/private-key.pem
+      - AMP_COMMAND=amp
+      - WORKER_MAX_RETRIES=3
+      - WORKER_RETRY_DELAY=60
+      - WORKER_POLL_INTERVAL=30
+    volumes:
+      - worker_workspace:/workspace
+      - ${GITHUB_PRIVATE_KEY_PATH:-./github-app-key.pem}:/etc/github/private-key.pem:ro
+      - ${HOME}/.gitconfig:/root/.gitconfig:ro
+    restart: unless-stopped
+
+  # Optional: Database browser for development
+  sqlite-web:
+    image: coleifer/sqlite-web
+    ports:
+      - "8081:8080"
+    volumes:
+      - orchestrator_data:/data
+    environment:
+      - SQLITE_DATABASE=/data/orchestrator.db
+    depends_on:
+      - orchestrator
+    profiles:
+      - debug
+
+volumes:
+  orchestrator_data:
+    driver: local
+  worker_workspace:
+    driver: local
+
+networks:
+  default:
+    name: amp-orchestrator-network

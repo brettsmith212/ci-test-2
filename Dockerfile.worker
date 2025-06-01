@@ -1,0 +1,54 @@
+# Build stage
+FROM golang:1.22-alpine AS builder
+
+# Install git for go modules
+RUN apk add --no-cache git
+
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the worker binary
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o worker ./cmd/worker
+
+# Final stage - Use golang image to have access to git and other tools
+FROM golang:1.22-alpine
+
+# Install required tools for worker operations
+RUN apk add --no-cache \
+    git \
+    curl \
+    jq \
+    ca-certificates \
+    openssh-client
+
+# Install GitHub CLI
+RUN curl -fsSL https://cli.github.com/packages/alpine/gh-cli.gpg | gpg --dearmor -o /usr/share/keyrings/gh-cli.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gh-cli.gpg] https://cli.github.com/packages/alpine/deb stable main" > /etc/apt/sources.list.d/gh-cli.list || \
+    (wget -O- https://cli.github.com/packages/alpine/gh-cli.asc | apk add --allow-untrusted - && \
+     apk add --no-cache gh)
+
+# Install Amp CLI (placeholder - will need actual installation method)
+# RUN curl -fsSL https://amp.dev/install.sh | sh
+
+WORKDIR /root/
+
+# Copy the binary from builder stage
+COPY --from=builder /app/worker .
+
+# Create workspace directory
+RUN mkdir -p /workspace
+
+# Set working directory for git operations
+WORKDIR /workspace
+
+# Set environment variables
+ENV WORKSPACE_PATH=/workspace
+
+# Run the worker
+CMD ["/root/worker"]
