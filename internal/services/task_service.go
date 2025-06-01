@@ -1,8 +1,10 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
@@ -17,7 +19,17 @@ type TaskService struct {
 }
 
 // NewTaskService creates a new TaskService instance
-func NewTaskService() *TaskService {
+func NewTaskService(db *gorm.DB) *TaskService {
+	if db == nil {
+		panic("database connection is nil")
+	}
+	return &TaskService{
+		db: db,
+	}
+}
+
+// NewTaskServiceDefault creates a new TaskService instance using the default database
+func NewTaskServiceDefault() *TaskService {
 	db := database.GetDB()
 	if db == nil {
 		panic("database not initialized - call database.Connect() first")
@@ -220,5 +232,73 @@ func (s *TaskService) ValidatePrompt(prompt string) error {
 		return fmt.Errorf("prompt too long (max 10000 characters)")
 	}
 
+	return nil
+}
+
+// GetNextTask retrieves the next queued task for processing
+func (s *TaskService) GetNextTask(ctx context.Context) (*models.Task, error) {
+	var task models.Task
+	
+	// Find the oldest queued task
+	err := s.db.Where("status = ?", models.TaskStatusQueued).
+		Order("created_at ASC").
+		First(&task).Error
+	
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil // No tasks available
+		}
+		return nil, fmt.Errorf("failed to get next task: %w", err)
+	}
+	
+	return &task, nil
+}
+
+// UpdateTaskStatus updates the status of a task
+func (s *TaskService) UpdateTaskStatus(ctx context.Context, taskID string, status string) error {
+	// First get the task, then update it
+	var task models.Task
+	err := s.db.Where("id = ?", taskID).First(&task).Error
+	if err != nil {
+		return fmt.Errorf("task not found: %w", err)
+	}
+	
+	// Update the status
+	task.Status = models.TaskStatus(status)
+	err = s.db.Save(&task).Error
+	if err != nil {
+		return fmt.Errorf("failed to update task status: %w", err)
+	}
+	
+	return nil
+}
+
+// UpdateTaskModel updates a task model
+func (s *TaskService) UpdateTaskModel(ctx context.Context, task *models.Task) error {
+	// Log what we're trying to save for debugging
+	fmt.Printf("DEBUG: Updating task %s with status %s\n", task.ID, task.Status)
+	
+	err := s.db.Save(task).Error
+	if err != nil {
+		return fmt.Errorf("failed to update task: %w", err)
+	}
+	return nil
+}
+
+// AddTaskLog adds a log entry for a task
+func (s *TaskService) AddTaskLog(ctx context.Context, taskID string, level, message string) error {
+	// Create a log entry
+	log := &models.TaskLog{
+		TaskID:    taskID,
+		Level:     level,
+		Message:   message,
+		Timestamp: time.Now(),
+	}
+	
+	err := s.db.Create(log).Error
+	if err != nil {
+		return fmt.Errorf("failed to add task log: %w", err)
+	}
+	
 	return nil
 }

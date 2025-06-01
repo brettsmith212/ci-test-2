@@ -18,7 +18,7 @@ type TaskHandler struct {
 // NewTaskHandler creates a new TaskHandler instance
 func NewTaskHandler() *TaskHandler {
 	// Create the service once when the handler is created
-	taskService := services.NewTaskService()
+	taskService := services.NewTaskServiceDefault()
 	return &TaskHandler{
 		taskService: taskService,
 	}

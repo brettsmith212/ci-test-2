@@ -20,6 +20,7 @@ func Migrate() error {
 	// Auto-migrate all models
 	if err := DB.AutoMigrate(
 		&models.Task{},
+		&models.TaskLog{},
 	); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}

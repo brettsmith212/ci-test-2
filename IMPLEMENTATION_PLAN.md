@@ -150,7 +150,7 @@
 
 ## 5. Worker Implementation
 
-- [ ] Step 13: Implement core worker logic
+- [x] Step 13: Implement core worker logic
 
   - **Task**: Create the main worker loop that processes tasks and interacts with Amp
   - **Description**: Implements the core business logic for task execution including Amp integration, Git operations, and CI monitoring
