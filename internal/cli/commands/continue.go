@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/brettsmith212/ci-test-2/internal/cli"
+	"github.com/brettsmith212/ci-test-2/internal/cli/output"
 )
 
 // UpdateTaskRequest represents a task update request
@@ -177,15 +178,15 @@ func outputContinueTable(taskID, newPrompt string, originalTask *TaskResponse) e
 	fmt.Println("✓ Task continued successfully!")
 	fmt.Println()
 	fmt.Printf("Task ID:        %s\n", taskID)
-	fmt.Printf("Previous Status: %s\n", formatStatus(originalTask.Status))
-	fmt.Printf("New Status:     %s\n", formatStatus("queued"))
+	fmt.Printf("Previous Status: %s\n", output.Status(originalTask.Status))
+	fmt.Printf("New Status:     %s\n", output.Status("queued"))
 	fmt.Printf("Repository:     %s\n", originalTask.Repo)
 	
 	if newPrompt != "" {
-		fmt.Printf("Original Prompt: %s\n", truncateString(originalTask.Prompt, 60))
+		fmt.Printf("Original Prompt: %s\n", output.TruncateString(originalTask.Prompt, 60))
 		fmt.Printf("New Prompt:     %s\n", newPrompt)
 	} else {
-		fmt.Printf("Prompt:         %s\n", truncateString(originalTask.Prompt, 60))
+		fmt.Printf("Prompt:         %s\n", output.TruncateString(originalTask.Prompt, 60))
 	}
 	
 	fmt.Printf("Attempts:       %d → %d\n", originalTask.Attempts, originalTask.Attempts+1)

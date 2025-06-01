@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/brettsmith212/ci-test-2/internal/cli"
+	"github.com/brettsmith212/ci-test-2/internal/cli/output"
 )
 
 // NewMergeCommand creates the merge command
@@ -98,7 +99,7 @@ func outputMergeTable(task *TaskResponse) error {
 	fmt.Println("✓ Task ready for merge!")
 	fmt.Println()
 	fmt.Printf("Task ID:     %s\n", task.ID)
-	fmt.Printf("Status:      %s\n", formatStatus(task.Status))
+	fmt.Printf("Status:      %s\n", output.Status(task.Status))
 	fmt.Printf("Repository:  %s\n", task.Repo)
 	fmt.Printf("Branch:      %s\n", task.Branch)
 	if task.ThreadID != "" {

@@ -5,12 +5,13 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/brettsmith212/ci-test-2/internal/cli"
+	"github.com/brettsmith212/ci-test-2/internal/cli/output"
+	"github.com/brettsmith212/ci-test-2/internal/models"
 )
 
 // TaskResponse represents a task in API responses
@@ -121,7 +122,23 @@ func listTasks(client *cli.Client, status string, limit, offset int, format, rep
 	// Display results
 	switch format {
 	case "json":
-		return cli.PrintJSON(listResp)
+		// Convert to models.Task for consistent JSON output
+		tasks := make([]models.Task, len(listResp.Tasks))
+		for i, t := range listResp.Tasks {
+			tasks[i] = models.Task{
+				ID:        t.ID,
+				Repo:      t.Repo,
+				Branch:    t.Branch,
+				Prompt:    t.Prompt,
+				Status:    models.TaskStatus(t.Status),
+				CreatedAt: t.CreatedAt,
+				UpdatedAt: t.UpdatedAt,
+			}
+		}
+		formatter := output.NewFormatter(cli.GetOutput(), output.FormatJSON)
+		return formatter.FormatTasks(tasks)
+	case "wide":
+		return outputTaskTableWide(listResp)
 	case "table", "":
 		return outputTaskTable(listResp)
 	default:
@@ -151,86 +168,58 @@ func watchTasks(client *cli.Client, status string, limit, offset int, format, re
 
 // outputTaskTable displays tasks in table format
 func outputTaskTable(resp TaskListResponse) error {
-	if len(resp.Tasks) == 0 {
-		fmt.Println("No tasks found.")
-		return nil
+	// Convert to models.Task for formatter
+	tasks := make([]models.Task, len(resp.Tasks))
+	for i, t := range resp.Tasks {
+		tasks[i] = models.Task{
+			ID:        t.ID,
+			Repo:      t.Repo,
+			Branch:    t.Branch,
+			Prompt:    t.Prompt,
+			Status:    models.TaskStatus(t.Status),
+			CreatedAt: t.CreatedAt,
+			UpdatedAt: t.UpdatedAt,
+		}
 	}
 
-	// Create table writer
-	w := tabwriter.NewWriter(cli.GetOutput(), 0, 0, 2, ' ', 0)
-	defer w.Flush()
-
-	// Print header
-	fmt.Fprintln(w, "ID\tSTATUS\tREPO\tBRANCH\tATTEMPTS\tCREATED\tPROMPT")
-	fmt.Fprintln(w, strings.Repeat("-", 8)+"\t"+strings.Repeat("-", 12)+"\t"+strings.Repeat("-", 25)+"\t"+strings.Repeat("-", 15)+"\t"+strings.Repeat("-", 8)+"\t"+strings.Repeat("-", 10)+"\t"+strings.Repeat("-", 30))
-
-	// Print tasks
-	for _, task := range resp.Tasks {
-		id := truncateString(task.ID, 8)
-		status := formatStatus(task.Status)
-		repo := formatRepo(task.Repo)
-		branch := truncateString(task.Branch, 15)
-		attempts := strconv.Itoa(task.Attempts)
-		created := task.CreatedAt.Format("15:04:05")
-		prompt := truncateString(task.Prompt, 30)
-
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			id, status, repo, branch, attempts, created, prompt)
+	formatter := output.NewFormatter(cli.GetOutput(), output.FormatTable)
+	if err := formatter.FormatTasks(tasks); err != nil {
+		return err
 	}
 
-	fmt.Fprintf(w, "\nTotal: %d tasks\n", resp.Total)
+	if resp.Total > len(resp.Tasks) {
+		fmt.Fprintf(cli.GetOutput(), "\n%s\n", output.Muted(fmt.Sprintf("Showing %d of %d tasks", len(resp.Tasks), resp.Total)))
+	}
+
 	return nil
 }
 
-// formatStatus adds color/symbols to status
-func formatStatus(status string) string {
-	switch status {
-	case "queued":
-		return "⏳ " + status
-	case "running":
-		return "🔄 " + status
-	case "retrying":
-		return "🔁 " + status
-	case "needs_review":
-		return "⚠️  review"
-	case "success":
-		return "✅ " + status
-	case "failed", "error":
-		return "❌ " + status
-	case "aborted":
-		return "🛑 " + status
-	default:
-		return status
+// outputTaskTableWide displays tasks in wide table format
+func outputTaskTableWide(resp TaskListResponse) error {
+	// Convert to models.Task for formatter
+	tasks := make([]models.Task, len(resp.Tasks))
+	for i, t := range resp.Tasks {
+		tasks[i] = models.Task{
+			ID:        t.ID,
+			Repo:      t.Repo,
+			Branch:    t.Branch,
+			Prompt:    t.Prompt,
+			Status:    models.TaskStatus(t.Status),
+			CreatedAt: t.CreatedAt,
+			UpdatedAt: t.UpdatedAt,
+		}
 	}
+
+	formatter := output.NewFormatter(cli.GetOutput(), output.FormatWide)
+	if err := formatter.FormatTasks(tasks); err != nil {
+		return err
+	}
+
+	if resp.Total > len(resp.Tasks) {
+		fmt.Fprintf(cli.GetOutput(), "\n%s\n", output.Muted(fmt.Sprintf("Showing %d of %d tasks", len(resp.Tasks), resp.Total)))
+	}
+
+	return nil
 }
 
-// formatRepo extracts repo name from URL
-func formatRepo(repoURL string) string {
-	// Extract repo name from URL
-	parts := strings.Split(repoURL, "/")
-	if len(parts) >= 2 {
-		repo := parts[len(parts)-1]
-		// Remove .git suffix if present
-		if strings.HasSuffix(repo, ".git") {
-			repo = strings.TrimSuffix(repo, ".git")
-		}
-		// Include owner/repo format
-		if len(parts) >= 3 {
-			owner := parts[len(parts)-2]
-			return fmt.Sprintf("%s/%s", owner, repo)
-		}
-		return repo
-	}
-	return truncateString(repoURL, 25)
-}
 
-// truncateString truncates string to specified length
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 3 {
-		return s[:maxLen]
-	}
-	return s[:maxLen-3] + "..."
-}

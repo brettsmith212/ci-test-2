@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/brettsmith212/ci-test-2/internal/cli"
+	"github.com/brettsmith212/ci-test-2/internal/cli/output"
 )
 
 // CreateTaskRequest represents a task creation request
@@ -162,15 +163,17 @@ func validateStartInputs(repo, prompt string) error {
 
 // outputStartTable displays the result in table format
 func outputStartTable(resp CreateTaskResponse, repo, prompt string) error {
-	fmt.Println("✓ Task created successfully!")
+	output.PrintSuccess("Task created successfully!")
 	fmt.Println()
-	fmt.Printf("Task ID:    %s\n", resp.ID)
-	fmt.Printf("Branch:     %s\n", resp.Branch)
-	fmt.Printf("Repository: %s\n", repo)
-	fmt.Printf("Prompt:     %s\n", prompt)
+	
+	fmt.Printf("%-12s %s\n", output.Primary("Task ID:"), output.ID(resp.ID))
+	fmt.Printf("%-12s %s\n", output.Primary("Branch:"), output.Branch(resp.Branch))
+	fmt.Printf("%-12s %s\n", output.Primary("Repository:"), output.Repository(repo))
+	fmt.Printf("%-12s %s\n", output.Primary("Prompt:"), prompt)
+	
 	fmt.Println()
-	fmt.Println("Use 'ampx logs " + resp.ID + "' to monitor progress")
-	fmt.Println("Use 'ampx list' to see all tasks")
+	fmt.Printf("%s %s\n", output.Info("Use"), output.Code("ampx logs "+resp.ID)+" to monitor progress")
+	fmt.Printf("%s %s\n", output.Info("Use"), output.Code("ampx list")+" to see all tasks")
 
 	return nil
 }

@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/brettsmith212/ci-test-2/internal/cli"
+	"github.com/brettsmith212/ci-test-2/internal/cli/output"
+	"github.com/brettsmith212/ci-test-2/internal/models"
 )
 
 // NewLogsCommand creates the logs command
@@ -70,12 +72,29 @@ func showTaskLogs(client *cli.Client, taskID string, tailLines int, format strin
 		return fmt.Errorf("failed to get task: %w", err)
 	}
 
+	// Convert to models.Task for formatter
+	modelTask := models.Task{
+		ID:        task.ID,
+		Repo:      task.Repo,
+		Branch:    task.Branch,
+		ThreadID:  task.ThreadID,
+		Prompt:    task.Prompt,
+		Status:    models.TaskStatus(task.Status),
+		CIRunID:   task.CIRunID,
+		Attempts:  task.Attempts,
+		Summary:   task.Summary,
+		CreatedAt: task.CreatedAt,
+		UpdatedAt: task.UpdatedAt,
+	}
+
 	// Display based on format
 	switch format {
 	case "json":
-		return cli.PrintJSON(task)
+		formatter := output.NewFormatter(cli.GetOutput(), output.FormatJSON)
+		return formatter.FormatTask(modelTask)
 	case "table", "":
-		return outputTaskLogs(task)
+		formatter := output.NewFormatter(cli.GetOutput(), output.FormatTable)
+		return formatter.FormatTask(modelTask)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
@@ -118,7 +137,7 @@ func followTaskLogs(client *cli.Client, taskID string, format string) error {
 
 		// If task is in terminal state, stop following
 		if isTerminalStatus(task.Status) {
-			fmt.Printf("\n✓ Task completed with status: %s\n", formatStatus(task.Status))
+			fmt.Printf("\n✓ Task completed with status: %s\n", output.Status(task.Status))
 			break
 		}
 
@@ -132,7 +151,7 @@ func followTaskLogs(client *cli.Client, taskID string, format string) error {
 func outputTaskLogs(task TaskResponse) error {
 	fmt.Printf("Task Details: %s\n", task.ID)
 	fmt.Println(strings.Repeat("=", 50))
-	fmt.Printf("Status:      %s\n", formatStatus(task.Status))
+	fmt.Printf("Status:      %s\n", output.Status(task.Status))
 	fmt.Printf("Repository:  %s\n", task.Repo)
 	if task.Branch != "" {
 		fmt.Printf("Branch:      %s\n", task.Branch)
@@ -213,9 +232,9 @@ func outputTaskUpdate(task TaskResponse, lastStatus string) {
 	timestamp := time.Now().Format("15:04:05")
 	
 	if lastStatus == "" {
-		fmt.Printf("[%s] Task %s: %s\n", timestamp, task.ID[:8], formatStatus(task.Status))
+		fmt.Printf("[%s] Task %s: %s\n", timestamp, task.ID[:8], output.Status(task.Status))
 	} else {
-		fmt.Printf("[%s] Task %s: %s → %s\n", timestamp, task.ID[:8], formatStatus(lastStatus), formatStatus(task.Status))
+		fmt.Printf("[%s] Task %s: %s → %s\n", timestamp, task.ID[:8], output.Status(lastStatus), output.Status(task.Status))
 	}
 
 	if task.Summary != "" {

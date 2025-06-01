@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/brettsmith212/ci-test-2/internal/cli"
+	"github.com/brettsmith212/ci-test-2/internal/cli/output"
 )
 
 // NewAbortCommand creates the abort command
@@ -56,7 +57,7 @@ Examples:
 			if !forceFlag && task.Status == "running" {
 				fmt.Printf("Task %s is currently running.\n", taskID)
 				fmt.Printf("Repository: %s\n", task.Repo)
-				fmt.Printf("Prompt: %s\n", truncateString(task.Prompt, 60))
+				fmt.Printf("Prompt: %s\n", output.TruncateString(task.Prompt, 60))
 				fmt.Print("Are you sure you want to abort this task? (y/N): ")
 				
 				var response string
@@ -134,10 +135,10 @@ func outputAbortTable(taskID string, originalTask *TaskResponse) error {
 	fmt.Println("✓ Task aborted successfully!")
 	fmt.Println()
 	fmt.Printf("Task ID:         %s\n", taskID)
-	fmt.Printf("Previous Status: %s\n", formatStatus(originalTask.Status))
-	fmt.Printf("New Status:      %s\n", formatStatus("aborted"))
+	fmt.Printf("Previous Status: %s\n", output.Status(originalTask.Status))
+	fmt.Printf("New Status:      %s\n", output.Status("aborted"))
 	fmt.Printf("Repository:      %s\n", originalTask.Repo)
-	fmt.Printf("Prompt:          %s\n", truncateString(originalTask.Prompt, 60))
+	fmt.Printf("Prompt:          %s\n", output.TruncateString(originalTask.Prompt, 60))
 	fmt.Printf("Attempts:        %d\n", originalTask.Attempts)
 	fmt.Println()
 	
