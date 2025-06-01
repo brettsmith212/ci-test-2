@@ -256,7 +256,14 @@ func PrintJSON(data interface{}) error {
 	return encoder.Encode(data)
 }
 
+var outputWriter io.Writer = os.Stdout
+
 // GetOutput returns the output writer (stdout by default)
-func GetOutput() *os.File {
-	return os.Stdout
+func GetOutput() io.Writer {
+	return outputWriter
+}
+
+// SetOutput sets the output writer (for testing)
+func SetOutput(w io.Writer) {
+	outputWriter = w
 }
