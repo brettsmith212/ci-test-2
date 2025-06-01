@@ -27,6 +27,9 @@ func NewServer(cfg *config.Config) *Server {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	// Register custom validators
+	RegisterCustomValidators()
+
 	server := &Server{
 		config: cfg,
 		router: gin.New(),
@@ -55,7 +58,19 @@ func (s *Server) setupMiddleware() {
 	// Request ID middleware
 	s.router.Use(RequestIDMiddleware())
 
-	// Error handling middleware
+	// Security middleware
+	s.router.Use(SecurityMiddleware())
+
+	// Request size limiting (10MB max)
+	s.router.Use(RequestSizeMiddleware(10 * 1024 * 1024))
+
+	// Content type validation for API routes
+	s.router.Use(ContentTypeValidationMiddleware())
+
+	// Validation middleware
+	s.router.Use(ValidationMiddleware())
+
+	// Error handling middleware (should be last)
 	s.router.Use(ErrorHandlingMiddleware())
 }
 

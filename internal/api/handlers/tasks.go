@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/brettsmith212/ci-test-2/internal/services"
+	"github.com/brettsmith212/ci-test-2/internal/validation"
 )
 
 // TaskHandler handles task-related HTTP requests
@@ -27,29 +28,33 @@ func NewTaskHandler() *TaskHandler {
 func (h *TaskHandler) CreateTask(c *gin.Context) {
 	var req CreateTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		validationErrs := validation.TranslateValidationErrors(err)
 		c.JSON(http.StatusBadRequest, ValidationErrorResponse{
 			Error:     "validation_error",
-			Message:   "Invalid request payload",
+			Message:   "Request validation failed",
+			Fields:    map[string]string{"validation": validationErrs.Error()},
 			RequestID: c.GetString("request_id"),
 		})
 		return
 	}
 
-	// Validate repository format
-	if err := h.taskService.ValidateRepo(req.Repo); err != nil {
+	// Validate repository format using new validator
+	if err := validation.ValidateRepositoryURL(req.Repo); err != nil {
 		c.JSON(http.StatusBadRequest, ValidationErrorResponse{
 			Error:     "validation_error",
-			Message:   err.Error(),
+			Message:   "Invalid repository",
+			Fields:    map[string]string{"repo": err.Error()},
 			RequestID: c.GetString("request_id"),
 		})
 		return
 	}
 
-	// Validate prompt
-	if err := h.taskService.ValidatePrompt(req.Prompt); err != nil {
+	// Validate prompt using new validator
+	if err := validation.ValidatePromptContent(req.Prompt); err != nil {
 		c.JSON(http.StatusBadRequest, ValidationErrorResponse{
 			Error:     "validation_error",
-			Message:   err.Error(),
+			Message:   "Invalid prompt",
+			Fields:    map[string]string{"prompt": err.Error()},
 			RequestID: c.GetString("request_id"),
 		})
 		return

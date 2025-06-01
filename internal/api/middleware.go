@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"log"
+	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/oklog/ulid/v2"
@@ -86,8 +88,10 @@ func RequestIDMiddleware() gin.HandlerFunc {
 	}
 }
 
-// ErrorHandlingMiddleware provides centralized error handling
+// ErrorHandlingMiddleware provides centralized error handling with improved error responses
 func ErrorHandlingMiddleware() gin.HandlerFunc {
+	errorHandler := GetErrorHandler()
+	
 	return func(c *gin.Context) {
 		c.Next()
 
@@ -100,12 +104,88 @@ func ErrorHandlingMiddleware() gin.HandlerFunc {
 
 			// Don't override status if it's already set
 			if c.Writer.Status() == 200 {
-				c.JSON(500, gin.H{
-					"error":      "Internal server error",
-					"request_id": requestID,
-				})
+				errorHandler.HandleGenericError(c, err.Err)
 			}
 		}
+	}
+}
+
+// ValidationMiddleware provides request validation with structured error responses
+func ValidationMiddleware() gin.HandlerFunc {
+	errorHandler := GetErrorHandler()
+	
+	return func(c *gin.Context) {
+		// Store error handler in context for easy access
+		c.Set("error_handler", errorHandler)
+		c.Next()
+	}
+}
+
+// ContentTypeValidationMiddleware validates content type for POST/PUT/PATCH requests
+func ContentTypeValidationMiddleware() gin.HandlerFunc {
+	errorHandler := GetErrorHandler()
+	
+	return func(c *gin.Context) {
+		method := c.Request.Method
+		
+		// Only validate content type for requests that should have a body
+		if method == "POST" || method == "PUT" || method == "PATCH" {
+			contentType := c.GetHeader("Content-Type")
+			
+			// Check if content type is JSON
+			if !strings.Contains(contentType, "application/json") {
+				errorHandler.HandleBadRequestError(c, 
+					"Invalid content type",
+					"Content-Type must be application/json for this endpoint")
+				c.Abort()
+				return
+			}
+		}
+		
+		c.Next()
+	}
+}
+
+// RequestSizeMiddleware limits request body size
+func RequestSizeMiddleware(maxSize int64) gin.HandlerFunc {
+	errorHandler := GetErrorHandler()
+	
+	return func(c *gin.Context) {
+		if c.Request.ContentLength > maxSize {
+			errorHandler.HandleBadRequestError(c,
+				"Request too large",
+				fmt.Sprintf("Request body cannot exceed %d bytes", maxSize))
+			c.Abort()
+			return
+		}
+		
+		// Limit the request body reader
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSize)
+		
+		c.Next()
+	}
+}
+
+// HeaderValidationMiddleware validates required headers
+func HeaderValidationMiddleware(requiredHeaders map[string]string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		missingHeaders := make(map[string]string)
+		
+		for header, description := range requiredHeaders {
+			if c.GetHeader(header) == "" {
+				missingHeaders[header] = fmt.Sprintf("%s header is required", description)
+			}
+		}
+		
+		if len(missingHeaders) > 0 {
+			apiError := ValidationErrorFields(missingHeaders)
+			apiError.RequestID = c.GetString("request_id")
+			c.JSON(http.StatusBadRequest, apiError)
+			c.Abort()
+			return
+		}
+		
+		c.Next()
 	}
 }
 
