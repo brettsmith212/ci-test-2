@@ -24,8 +24,17 @@ go.work
 
 # Database files
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
+
+# Test data
+testdata/*.db
+testdata/*.db-shm
+testdata/*.db-wal
+testdata/*.sqlite
+testdata/*.sqlite3
 
 # Log files
 *.log
